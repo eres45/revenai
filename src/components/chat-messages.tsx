@@ -7,7 +7,9 @@ import { ThinkingBox } from './thinking-box';
 import { WebSearchBox } from './web-search-box';
 import { TypewriterText } from './typewriter-text';
 import { MODELS, MODEL_CONFIGS, ModelId } from "@/config/models";
-import { User } from 'lucide-react';
+import { User, Copy, Check } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface SearchResult {
   title: string;
@@ -52,77 +54,49 @@ const detectLanguage = (code: string): string => {
   return 'plaintext';
 };
 
-const formatMessage = (content: string, animated: boolean = false) => {
-  // If animation is not needed, just use the normal formatting
-  if (!animated) {
-  // Split content into text and code blocks
-  const parts = content.split(/```([\s\S]*?)```/);
-  return parts.map((part, index) => {
-    if (index % 2 === 1) {
-      // This is a code block
-      const lines = part.split('\n');
-      const firstLine = lines[0].trim();
-      const language = firstLine || detectLanguage(part);
-      const code = firstLine ? lines.slice(1).join('\n') : part;
-      return <CodeBlock key={index} code={code.trim()} language={language} />;
-    } else {
-      // Format text content with better styling
-      const formattedText = part
-        // Format headings
-        .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-neutral-200">$1</h3>')
-        .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-6 mb-3 text-neutral-200">$2</h2>')
-        .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-8 mb-4 text-neutral-200">$1</h1>')
-        
-        // Format bold text
-        .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-neutral-200">$1</strong>')
+const ChatMessageContent = ({ content }: { content: string }) => {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+        h1: ({ node, ...props }) => <h1 className="text-2xl font-bold mt-8 mb-4 text-neutral-200" {...props} />,
+        h2: ({ node, ...props }) => <h2 className="text-xl font-semibold mt-6 mb-3 text-neutral-200" {...props} />,
+        h3: ({ node, ...props }) => <h3 className="text-lg font-semibold mt-4 mb-2 text-neutral-200" {...props} />,
+        ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-4 space-y-2" {...props} />,
+        ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-4 space-y-2" {...props} />,
+        li: ({ node, ...props }) => <li className="text-neutral-300" {...props} />,
+        code: ({ node, inline, className, children, ...props }: any) => {
+          const match = /language-(\w+)/.exec(className || '');
+          const code = String(children).replace(/\n$/, '');
+          const language = match ? match[1] : detectLanguage(code);
 
-        // Format italic text
-        .replace(/\*(.*?)\*/g, '<em class="italic text-neutral-200">$1</em>')
-        
-        // Format unordered lists
-        .replace(/^\* (.*$)/gm, '<li class="flex items-start mb-2"><span class="mr-2 text-neutral-400">•</span><span>$1</span></li>')
-        .replace(/^- (.*$)/gm, '<li class="flex items-start mb-2"><span class="mr-2 text-neutral-400">•</span><span>$1</span></li>')
-        
-        // Format key points
-        .replace(/^Key (.*?):/gm, '<div class="font-semibold text-emerald-400 mt-4">Key $1:</div>')
-        
-        // Format ordered lists/steps
-        .replace(/^(\d+)\. (.*$)/gm, '<div class="flex items-start mb-2"><span class="font-mono text-emerald-400 mr-2">$1.</span><span>$2</span></div>')
-        
-        // Format citations [Source: example.com]
-        .replace(/\[Source: (.*?)\]/g, '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-teal-950/50 text-teal-300 font-mono">[Source: $1]</span>')
-        
-        // Format inline code
-        .replace(/`(.*?)`/g, '<code class="px-1 py-0.5 rounded bg-neutral-800 text-emerald-400 text-sm font-mono">$1</code>')
-        
-        // Format horizontal rule
-        .replace(/^---$/gm, '<hr class="my-4 border-neutral-700" />');
+          if (!inline && match) {
+            return <CodeBlock code={code} language={language} />;
+          }
 
-      return (
-        <div 
-          key={index} 
-          className="space-y-2 text-neutral-300 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: formattedText }}
-        />
-      );
-    }
-  });
-  } else {
-    // For animated text, we'll do more basic formatting
-    return (
-      <TypewriterText
-        text={content}
-        speed={2}
-        className="space-y-2 text-neutral-300 leading-relaxed whitespace-pre-wrap"
-      />
-    );
-  }
+          return (
+            <code className="px-1 py-0.5 rounded bg-neutral-800 text-emerald-400 text-sm font-mono" {...props}>
+              {children}
+            </code>
+          );
+        },
+        blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-neutral-700 pl-4 py-2 my-4 italic text-neutral-400" {...props} />,
+        hr: ({ node, ...props }) => <hr className="my-4 border-neutral-700" {...props} />,
+        strong: ({ node, ...props }) => <strong className="font-semibold text-neutral-100" {...props} />,
+        a: ({ node, ...props }) => <a className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
+      }}
+      className="text-neutral-300 leading-relaxed"
+    >
+      {content}
+    </ReactMarkdown>
+  );
 };
 
-export function ChatMessages({ 
-  messages, 
-  isAiTyping = false, 
-  isThinking = false, 
+export function ChatMessages({
+  messages,
+  isAiTyping = false,
+  isThinking = false,
   modelName = "AI",
   modelId,
   currentThinking = "",
@@ -138,6 +112,13 @@ export function ChatMessages({
   const [isThinkingAnimationComplete, setIsThinkingAnimationComplete] = useState(false);
   const lastThinkingRef = useRef<string>("");
   const activeThinkingRef = useRef<boolean>(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopy = (content: string, id: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -169,10 +150,10 @@ export function ChatMessages({
         processedMessagesRef.current.add(msg.id);
       }
     });
-    
+
     scrollToBottom();
   }, [messages.length]);
-  
+
   // Handle scrolling when animation state changes
   useEffect(() => {
     scrollToBottom();
@@ -209,20 +190,20 @@ export function ChatMessages({
     <div className="space-y-4 px-4">
       {/* Process the messages to properly order user message, search results, and AI responses */}
       {messages.map((message, index) => {
-        const isAnimated = !message.isUser && 
-                          !animatedMessages[message.id] && 
-                          !processedMessagesRef.current.has(message.id);
-        
+        const isAnimated = !message.isUser &&
+          !animatedMessages[message.id] &&
+          !processedMessagesRef.current.has(message.id);
+
         // Get the next message (if any)
         const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
-        
+
         // Check if this is a user message followed by an AI response with search results
-        const isUserMessageWithSearchResults = message.isUser && nextMessage && 
-                                              !nextMessage.isUser && 
-                                              nextMessage.searchResults && 
-                                              Array.isArray(nextMessage.searchResults) && 
-                                              nextMessage.searchResults.length > 0;
-        
+        const isUserMessageWithSearchResults = message.isUser && nextMessage &&
+          !nextMessage.isUser &&
+          nextMessage.searchResults &&
+          Array.isArray(nextMessage.searchResults) &&
+          nextMessage.searchResults.length > 0;
+
         return (
           <React.Fragment key={message.id}>
             {/* The message itself */}
@@ -231,8 +212,8 @@ export function ChatMessages({
                 {!message.isUser && (
                   <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 bg-neutral-800 flex items-center justify-center mr-2">
                     {message.modelId && MODEL_CONFIGS[message.modelId] ? (
-                      <img 
-                        src={MODEL_CONFIGS[message.modelId].icon} 
+                      <img
+                        src={MODEL_CONFIGS[message.modelId].icon}
                         alt={MODEL_CONFIGS[message.modelId].name}
                         className="h-5 w-5 object-contain"
                       />
@@ -242,16 +223,15 @@ export function ChatMessages({
                   </div>
                 )}
                 <div
-                  className={`max-w-[90%] rounded-2xl px-4 py-3 ${
-                    message.isUser
+                  className={`max-w-[90%] rounded-2xl px-4 py-3 ${message.isUser
                       ? 'bg-blue-500 text-white'
                       : 'bg-[#000000] dark:bg-[#000000]'
-                  }`}
+                    }`}
                 >
                   {message.isUser ? (
                     <p className="text-sm">{message.content}</p>
                   ) : (
-                    <div className="text-neutral-300">
+                    <div className="text-neutral-300 relative group">
                       {isAnimated ? (
                         <TypewriterText
                           text={message.content}
@@ -260,15 +240,29 @@ export function ChatMessages({
                           onComplete={() => handleAnimationComplete(message.id)}
                         />
                       ) : (
-                        formatMessage(message.content)
+                        <ChatMessageContent content={message.content} />
+                      )}
+
+                      {!isAnimated && (
+                        <button
+                          onClick={() => handleCopy(message.content, message.id)}
+                          className="absolute -right-2 -top-2 p-1.5 rounded-md bg-neutral-800 text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+                          title="Copy to clipboard"
+                        >
+                          {copiedId === message.id ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
                       )}
                     </div>
                   )}
                   <p className="text-[10px] mt-1 opacity-70">
-                    {message.timestamp.toLocaleTimeString([], { 
-                      hour: '2-digit', 
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: '2-digit',
                       minute: '2-digit',
-                      hour12: true 
+                      hour12: true
                     })}
                   </p>
                 </div>
@@ -279,74 +273,74 @@ export function ChatMessages({
                 )}
               </div>
             </div>
-            
+
             {/* If this is a user message, show thinking or search indicators */}
             {message.isUser && index === messages.length - 1 && (
               <>
                 {isThinking && currentThinking && (
                   <div className="mt-2 mb-2">
-                    <ThinkingBox 
-                      thinkingProcess={currentThinking} 
+                    <ThinkingBox
+                      thinkingProcess={currentThinking}
                       isLoading={false}
                       onThinkingComplete={handleThinkingAnimationComplete}
                       isActive={true}
                     />
                   </div>
                 )}
-                
+
                 {isThinking && !currentThinking && (
                   <div className="mt-2 mb-2">
                     <ThinkingBox thinkingProcess="" isLoading={true} isActive={true} />
                   </div>
                 )}
-                
+
                 {isSearching && (
                   <div className="mt-2 mb-2">
-                    <WebSearchBox 
-                      searchResults={currentSearchResults} 
+                    <WebSearchBox
+                      searchResults={currentSearchResults}
                       isLoading={true}
                       searchQuery={currentSearchQuery}
-                      isActive={true} 
+                      isActive={true}
                     />
                   </div>
                 )}
-                
+
                 {!isSearching && currentSearchResults && currentSearchResults.length > 0 && (
                   <div className="mt-2 mb-2">
-                    <WebSearchBox 
-                      searchResults={currentSearchResults} 
+                    <WebSearchBox
+                      searchResults={currentSearchResults}
                       isLoading={false}
                       searchQuery={currentSearchQuery}
-                      isActive={true} 
+                      isActive={true}
                     />
                   </div>
                 )}
               </>
             )}
-            
+
             {/* After a user message, show the search results before the AI response */}
             {isUserMessageWithSearchResults && (
               <div className="mt-2 mb-2">
-                <WebSearchBox 
-                  searchResults={nextMessage!.searchResults!} 
+                <WebSearchBox
+                  searchResults={nextMessage!.searchResults!}
                   isLoading={false}
                   searchQuery={nextMessage!.searchQuery}
-                  isActive={true} 
+                  isActive={true}
                 />
               </div>
             )}
           </React.Fragment>
         );
       })}
-      
+
       {waitingForResponse && !isThinking && !isSearching && (
         <TypingIndicator modelName={modelName} />
       )}
-      
+
       {isAiTyping && !isThinking && !isSearching && !waitingForResponse && (
         <TypingIndicator modelName={modelName} />
       )}
-      
+
       <div ref={messagesEndRef} />
     </div>
   );

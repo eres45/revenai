@@ -9,6 +9,7 @@ import { Sidebar } from "./sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { GoogleSignInModal } from "./google-signin-modal";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -108,6 +109,8 @@ export function Header() {
               <span className="hidden sm:inline font-medium">Upgrade</span>
             </HoverBorderGradient>
           </Link>
+
+          <ThemeToggle />
 
           {/* User Circle for Google Sign-in */}
           <Button

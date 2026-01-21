@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowUp, Search, MessageCircle, Globe, BookOpen } from "lucide-react";
+import { ArrowUp, Search, MessageCircle, Globe, BookOpen, Trash2 } from "lucide-react";
 import { ChatMessages } from "./chat-messages";
 import { DateTime } from "./date-time";
 import { ModelSelector } from "./model-selector";
@@ -53,8 +53,38 @@ export function SearchBox({ onConversationStart, initialQuery = "" }: SearchBoxP
   const searchDropdownRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const pendingMessageRef = useRef<{ content: string, id: string } | null>(null);
+  // Load messages from localStorage on mount
+  React.useEffect(() => {
+    const savedMessages = localStorage.getItem("revenai_messages");
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages).map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(parsedMessages);
+      } catch (e) {
+        console.error("Failed to parse saved messages", e);
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage when they change
+  React.useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem("revenai_messages", JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  const clearChat = () => {
+    if (confirm("Are you sure you want to clear the chat history?")) {
+      setMessages([]);
+      localStorage.removeItem("revenai_messages");
+    }
+  };
+
   const hasStartedChat = messages.length > 0;
-  
+
   // Get the model name from the selected model ID
   const selectedModelName = MODEL_CONFIGS[selectedModel]?.name || "AI";
 
@@ -109,25 +139,25 @@ export function SearchBox({ onConversationStart, initialQuery = "" }: SearchBoxP
   // This function will be called when thinking is complete
   const sendFinalResponse = async () => {
     if (!pendingMessageRef.current) return;
-    
+
     console.log("SearchBox: Sending final response");
     setWaitingForResponse(true);
     const userQueryContent = pendingMessageRef.current.content;
     const userMessageId = pendingMessageRef.current.id;
-    
+
     try {
       // Extract search type from content if present
       let systemInstructions = "";
       let useSearchResults = false;
       let searchResultsText = "";
-      
+
       // Format search results as text to include in the prompt
       if (currentSearchResults && currentSearchResults.length > 0) {
-        searchResultsText = `\n<search_results>\n${currentSearchResults.map((result, index) => 
+        searchResultsText = `\n<search_results>\n${currentSearchResults.map((result, index) =>
           `RESULT ${index + 1}:\nTitle: ${result.title}\nURL: ${result.link}\nSource: ${result.source}\nSnippet: ${result.snippet}\n`
         ).join('\n')}\n</search_results>\n`;
       }
-      
+
       if (userQueryContent.startsWith("Web search:")) {
         // For web searches, include the search results in the prompt
         systemInstructions = `
@@ -164,7 +194,7 @@ This is a research query. Please provide an in-depth analysis with:
 </instructions>
 `;
       }
-      
+
       const finalPrompt = `
 ${systemInstructions}
 <response>
@@ -228,27 +258,27 @@ Your response should be well-structured, informative, and conversational.
         modelId: selectedModel
       };
 
-      console.log("AI Message with search data:", 
+      console.log("AI Message with search data:",
         useSearchResults ? `${currentSearchResults?.length || 0} results for "${currentSearchQuery}"` : "No search results");
 
       // Add the AI response without removing the user message
       setMessages((prev) => [...prev, aiMessage]);
-      
+
       // Clear pending message but DON'T clear search results
       pendingMessageRef.current = null;
-      
+
       // Now clear the current state except search results
       setCurrentThinking("");
       setIsThinking(false);
       setIsSearching(false);
-      
+
       // Keep search results available for display
       // Don't clear them anymore as it causes the search box to disappear
       // setTimeout(() => {
       //   setCurrentSearchResults([]);
       //   setCurrentSearchQuery("");
       // }, 500);
-      
+
     } catch (error) {
       console.error("Error:", error);
       const errorMessage: Message = {
@@ -275,7 +305,7 @@ Your response should be well-structured, informative, and conversational.
     // Process query based on search type
     let processedQuery = query;
     let actualSearchType = searchType;
-    
+
     // Detect if the user has manually typed "web search:" or "research:"
     if (query.toLowerCase().startsWith("web search:")) {
       actualSearchType = "web";
@@ -293,7 +323,7 @@ Your response should be well-structured, informative, and conversational.
 
     // Format the message content based on the search type
     let messageContent = query;
-    
+
     if (actualSearchType === "web") {
       messageContent = `Web search: ${processedQuery}`;
     } else if (actualSearchType === "research") {
@@ -326,7 +356,7 @@ Your response should be well-structured, informative, and conversational.
     if (actualSearchType === "web") {
       setIsSearching(true);
       setCurrentSearchQuery(processedQuery);
-      
+
       try {
         const searchResponse = await fetch("/api/web-search", {
           method: "POST",
@@ -345,7 +375,7 @@ Your response should be well-structured, informative, and conversational.
         }
 
         setCurrentSearchResults(searchData.organic_results || []);
-        
+
         // After getting search results, then proceed to final response
         setTimeout(() => {
           sendFinalResponse();
@@ -357,16 +387,16 @@ Your response should be well-structured, informative, and conversational.
         // On search error, still try to get a response
         sendFinalResponse();
       }
-      
+
       return;
     }
 
     // Proceed directly with getting the response
-      try {
-        // Extract search type from messageContent if present
-        let promptPrefix = "";
-        if (messageContent.startsWith("Web search:")) {
-          promptPrefix = `
+    try {
+      // Extract search type from messageContent if present
+      let promptPrefix = "";
+      if (messageContent.startsWith("Web search:")) {
+        promptPrefix = `
 <instructions>
 This is a web search query. Please provide search results as if you are a search engine,
 focusing on finding relevant online information. Include key facts, recent information, and 
@@ -374,8 +404,8 @@ cite any sources you would expect to find. Format your response like search resu
 clear headlines and brief summaries.
 </instructions>
 `;
-        } else if (messageContent.startsWith("Research:")) {
-          promptPrefix = `
+      } else if (messageContent.startsWith("Research:")) {
+        promptPrefix = `
 <instructions>
 This is a research query. Please provide an in-depth analysis with:
 - Comprehensive investigation of the topic
@@ -387,56 +417,56 @@ This is a research query. Please provide an in-depth analysis with:
 - Structure your response as an academic research summary
 </instructions>
 `;
-        }
+      }
 
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            messages: [
-              ...messages,
-              userMessage,
-              ...(promptPrefix ? [{
-                content: promptPrefix,
-                isUser: false
-              }] : [])
-            ].map(m => ({
-              content: m.content,
-              isUser: m.isUser,
-            })),
-            model: selectedModel,
-          }),
-        });
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            ...messages,
+            userMessage,
+            ...(promptPrefix ? [{
+              content: promptPrefix,
+              isUser: false
+            }] : [])
+          ].map(m => ({
+            content: m.content,
+            isUser: m.isUser,
+          })),
+          model: selectedModel,
+        }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to get response");
-        }
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get response");
+      }
 
-        const aiMessage: Message = {
-          id: Math.random().toString(),
-          content: data.text,
-          isUser: false,
-          timestamp: new Date(data.timestamp),
-          modelId: selectedModel
-        };
+      const aiMessage: Message = {
+        id: Math.random().toString(),
+        content: data.text,
+        isUser: false,
+        timestamp: new Date(data.timestamp),
+        modelId: selectedModel
+      };
 
-        setMessages((prev) => [...prev, aiMessage]);
-        pendingMessageRef.current = null;
-      } catch (error) {
-        console.error("Error:", error);
-        const errorMessage: Message = {
-          id: Math.random().toString(),
-          content: error instanceof Error ? error.message : "Something went wrong. Please try again.",
-          isUser: false,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      } finally {
-        setIsLoading(false);
+      setMessages((prev) => [...prev, aiMessage]);
+      pendingMessageRef.current = null;
+    } catch (error) {
+      console.error("Error:", error);
+      const errorMessage: Message = {
+        id: Math.random().toString(),
+        content: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -456,11 +486,10 @@ This is a research query. Please provide an in-depth analysis with:
 
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto transition-all duration-700 ease-in-out`}>
-      <div className={`flex-1 overflow-y-auto mb-4 transition-all duration-700 ${
-        hasStartedChat ? 'h-[calc(100vh-180px)]' : 'h-0'
-      } pb-20`}>
-        <ChatMessages 
-          messages={messages} 
+      <div className={`flex-1 overflow-y-auto mb-4 transition-all duration-700 ${hasStartedChat ? 'h-[calc(100vh-180px)]' : 'h-0'
+        } pb-20`}>
+        <ChatMessages
+          messages={messages}
           isAiTyping={isLoading && !isThinking && !isSearching && !waitingForResponse}
           modelName={selectedModelName}
           modelId={selectedModel}
@@ -474,9 +503,8 @@ This is a research query. Please provide an in-depth analysis with:
         />
       </div>
 
-      <div className={`transition-all duration-700 ease-in-out ${
-        hasStartedChat ? 'fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm pb-6 pt-2' : ''
-      }`}>
+      <div className={`transition-all duration-700 ease-in-out ${hasStartedChat ? 'fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm pb-6 pt-2' : ''
+        }`}>
         <div className="max-w-4xl mx-auto px-4">
           <form onSubmit={handleSubmit} className="w-full">
             <div className="relative w-full flex justify-center">
@@ -508,9 +536,8 @@ This is a research query. Please provide an in-depth analysis with:
                         <button
                           type="button"
                           onClick={() => handleSearchOptionClick('chat')}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
-                            !isSearchMode ? "bg-neutral-100 dark:bg-neutral-800" : ""
-                          }`}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${!isSearchMode ? "bg-neutral-100 dark:bg-neutral-800" : ""
+                            }`}
                         >
                           <MessageCircle className="w-4 h-4" />
                           <span className="text-neutral-700 dark:text-neutral-200">Chat</span>
@@ -518,9 +545,8 @@ This is a research query. Please provide an in-depth analysis with:
                         <button
                           type="button"
                           onClick={() => handleSearchOptionClick('web')}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
-                            isSearchMode && searchType === "web" ? "bg-neutral-100 dark:bg-neutral-800" : ""
-                          }`}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${isSearchMode && searchType === "web" ? "bg-neutral-100 dark:bg-neutral-800" : ""
+                            }`}
                         >
                           <Globe className="w-4 h-4" />
                           <span className="text-neutral-700 dark:text-neutral-200">Web Search</span>
@@ -528,9 +554,8 @@ This is a research query. Please provide an in-depth analysis with:
                         <button
                           type="button"
                           onClick={() => handleSearchOptionClick('research')}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
-                            isSearchMode && searchType === "research" ? "bg-neutral-100 dark:bg-neutral-800" : ""
-                          }`}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${isSearchMode && searchType === "research" ? "bg-neutral-100 dark:bg-neutral-800" : ""
+                            }`}
                         >
                           <BookOpen className="w-4 h-4" />
                           <span className="text-neutral-700 dark:text-neutral-200">Research</span>
@@ -539,12 +564,21 @@ This is a research query. Please provide an in-depth analysis with:
                     )}
                   </div>
 
-                  <ModelSelector 
+                  <ModelSelector
                     selectedModel={selectedModel}
                     onModelChange={setSelectedModel}
                     isFixed={true}
                   />
-
+                  {hasStartedChat && (
+                    <button
+                      type="button"
+                      onClick={clearChat}
+                      className="flex items-center justify-center w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors duration-200 bg-white dark:bg-neutral-800 text-neutral-500"
+                      title="Clear Chat"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                   <input
                     type="text"
                     className="flex-1 bg-transparent border-0 focus:ring-0 focus:outline-none text-base placeholder:text-neutral-500 min-w-0 p-1"
@@ -553,17 +587,16 @@ This is a research query. Please provide an in-depth analysis with:
                     onChange={(e) => setQuery(e.target.value)}
                     disabled={isLoading}
                   />
-                  
+
                   <button
                     type="submit"
                     disabled={isLoading || !query.trim()}
-                    className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                      isLoading 
-                        ? 'bg-gray-100 dark:bg-neutral-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : query.trim() 
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'bg-gray-100 dark:bg-neutral-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                    } transition-colors duration-200`}
+                    className={`flex items-center justify-center w-8 h-8 rounded-full ${isLoading
+                      ? 'bg-gray-100 dark:bg-neutral-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : query.trim()
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-100 dark:bg-neutral-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      } transition-colors duration-200`}
                     aria-label="Submit"
                   >
                     <ArrowUp className="w-4 h-4" />
