@@ -11,11 +11,12 @@ RevenAI is a cutting-edge, high-performance AI assistant platform designed to br
 - [x] **Unified Intelligence**: Access multiple AI models (Mistral, OpenAI, Groq, etc.) from a single terminal-like interface.
 - [x] **Ultra-Fast Real-time Response**: Optimized for low latency and high throughput.
 - [x] **Pro-Grade Sidebar**: Manage your chat history, settings, and workspace with a professional-grade navigation system.
-- [x] **Dynamic Dark/Light Mode**: Beautifully crafted themes that adapt to your environment.
-- [x] **Mobile First Design**: Fully responsive architecture that looks stunning on any device.
-- [x] **User Authentication**: Secure Google Sign-in integration via Firebase.
-- [x] **Usage Analytics**: Track your model usage and performance directly from your dashboard.
-- [x] **Web Search Integration**: AI-powered web searching for up-to-date information.
+- [x] **Markdown Rendering**: Robust rendering of AI responses using `react-markdown` and `remark-gfm`.
+- [x] **Copy to Clipboard**: One-click copying for both user and AI messages.
+- [x] **Clear Chat**: Easily reset your conversation history with a single click.
+- [x] **Message Persistence**: Your chat history is saved locally and survives page refreshes.
+- [x] **Typing Indicator**: Real-time animation when the AI is processing your request.
+- [x] **Dark/Light Theme Toggle**: Full support for both light and dark modes via the header.
 
 ---
 
@@ -109,3 +110,12 @@ src/
 ---
 
 Brought to you by [eres45](https://github.com/eres45)
+
+## 🏁 Submission Checklist
+- [x] GitHub repository is public and accessible
+- [x] README.md is complete with all required sections
+- [x] .env.example file is included
+- [ ] Demo video is recorded (To be completed by user)
+- [ ] Video link is in README (To be completed by user)
+- [x] All code runs without errors
+- [x] No API keys or sensitive data in repository
