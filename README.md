@@ -92,7 +92,7 @@ Total time spent on this assignment: **~5 hours** (Including Research, Developme
 ---
 
 ## 🎥 Demo Video
-[Watch the Demo Video Here](https://github.com/eres45/revenai) *(Placeholder - Replace with your video link)*
+[Watch the RevenAI Video Walkthrough](https://youtu.be/dUvO_KoNhwA)
 
 ---
 
@@ -115,7 +115,7 @@ Brought to you by [eres45](https://github.com/eres45)
 - [x] GitHub repository is public and accessible
 - [x] README.md is complete with all required sections
 - [x] .env.example file is included
-- [ ] Demo video is recorded (To be completed by user)
-- [ ] Video link is in README (To be completed by user)
+- [x] Demo video is recorded
+- [x] Video link is in README
 - [x] All code runs without errors
 - [x] No API keys or sensitive data in repository
