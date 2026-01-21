@@ -6,15 +6,16 @@ RevenAI is a cutting-edge, high-performance AI assistant platform designed to br
 
 ---
 
-## ✨ Features
+## ✨ Features (Checklist)
 
-- **Unified Intelligence**: Access multiple AI models (Mistral, OpenAI, Groq, etc.) from a single terminal-like interface.
-- **Ultra-Fast Real-time Response**: Optimized for low latency and high throughput.
-- **Pro-Grade Sidebar**: Manage your chat history, settings, and workspace with a professional-grade navigation system.
-- **Dynamic Dark/Light Mode**: Beautifully crafted themes that adapt to your environment (Dark mode recommended for the best experience).
-- **Mobile First Design**: Fully responsive architecture that looks stunning on any device.
-- **User Authentication**: Secure Google Sign-in integration via Firebase.
-- **Usage Analytics**: Track your model usage and performance directly from your dashboard.
+- [x] **Unified Intelligence**: Access multiple AI models (Mistral, OpenAI, Groq, etc.) from a single terminal-like interface.
+- [x] **Ultra-Fast Real-time Response**: Optimized for low latency and high throughput.
+- [x] **Pro-Grade Sidebar**: Manage your chat history, settings, and workspace with a professional-grade navigation system.
+- [x] **Dynamic Dark/Light Mode**: Beautifully crafted themes that adapt to your environment.
+- [x] **Mobile First Design**: Fully responsive architecture that looks stunning on any device.
+- [x] **User Authentication**: Secure Google Sign-in integration via Firebase.
+- [x] **Usage Analytics**: Track your model usage and performance directly from your dashboard.
+- [x] **Web Search Integration**: AI-powered web searching for up-to-date information.
 
 ---
 
@@ -61,7 +62,7 @@ The core of RevenAI is a powerful command-center interface that allows you to sw
    ```
 
 3. Setup environment variables:
-   Create a `.env.local` file with your Firebase and AI provider keys.
+   Create a `.env.local` file with your keys. See [.env.example](./.env.example) for the required structure.
 
 4. Run the development server:
    ```bash
@@ -69,6 +70,28 @@ The core of RevenAI is a powerful command-center interface that allows you to sw
    ```
 
 5. Open [http://localhost:5010](http://localhost:5010) in your browser.
+
+---
+
+## 🔑 Environment Variables
+
+Required variables in your `.env` or `.env.local`:
+
+- `NEXT_PUBLIC_FIREBASE_API_KEY`: Your Firebase Web API Key
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`: Your Firebase Auth Domain
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`: Your Firebase Project ID
+- `GROQ_API_KEY`: API Key for Groq Llama/Qwen models
+- `NEXT_PUBLIC_SITE_URL`: Your application URL
+
+---
+
+## ⏱️ Time Spent
+Total time spent on this assignment: **~5 hours** (Including Research, Development, Branding, and Documentation).
+
+---
+
+## 🎥 Demo Video
+[Watch the Demo Video Here](https://github.com/eres45/revenai) *(Placeholder - Replace with your video link)*
 
 ---
 
